@@ -5,19 +5,22 @@
 短且干净、保护 base coding ability”原则筛选出 300 条 protocol warm-up 样本。
 
 配比（允许 ±浮动，总量 280~320，run router 数 >= repair submit 数）：
-  problem_submit                40
-  first_failure_run            120   <- 最重要
-  first_failure_direct_repair   40
-  post_run_repair               60
+  problem_submit                30
+  first_failure_run            140   <- 最重要（router 池最大）
+  first_failure_direct_repair   35
+  post_run_repair               55
   second_failure_run            25
   multiround_final_submit       15
 
 规则：
   * 单位 = prefix sample（prepare_sft 导出），不是 episode；
   * state_type 由 history 结构推断（先 submit 失败? run 次数? 目标工具?）；
-  * 同一 problem 最多 2 个 sample；
+  * SELECTION_ORDER = rare-state-first：先占 second_failure_run /
+    multiround_final_submit，避免被前面 bucket 用光 problem cap（每 problem ≤2）；
+  * 核心行为下限是 hard gate（RuntimeError），不满足绝不输出；
   * 难度偏向 intro/interview，competition 降权；
   * target 代码长 & 怪风格（lambda 堆叠等）降权；
+  * 最近一条 observation 有诊断价值 +1 / timeout·output_limit -1 / truncated -2；
   * 输出 data/coding_sft_protocol/{train,dev}.json + dataset_info +
     manifest + stats + README；不修改完整数据池。
 """
@@ -25,7 +28,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 import yaml
@@ -42,8 +45,31 @@ QUOTAS = {
     "second_failure_run": 25,
     "multiround_final_submit": 15,
 }
+SELECTION_ORDER = [
+    "second_failure_run",
+    "multiround_final_submit",
+    "first_failure_direct_repair",
+    "post_run_repair",
+    "problem_submit",
+    "first_failure_run",
+]
 TOTAL_TARGET = sum(QUOTAS.values())  # 300
 MAX_PER_PROBLEM = 2
+
+HARD_GATES = {
+    "total_min": 280, "total_max": 320,
+    "first_failure_run_min": 100,
+    "second_failure_run_min": 20,
+    "multiround_final_submit_min": 10,
+    "run_ge_submit": True,
+}
+
+CLEAR_RUNTIME_ERRORS = (
+    "indexerror", "valueerror", "typeerror", "runtimeerror",
+    "attributeerror", "keyerror", "zerodivisionerror", "nameerror",
+    "assertionerror", "recursionerror", "stoperror", "overflowerror",
+    "syntaxerror", "importerror",
+)
 
 LAMBDA = re.compile(r"\blambda\s")
 
@@ -120,6 +146,40 @@ def code_style_penalty(code: str) -> int:
     return penalty
 
 
+def last_observation(sample: dict) -> dict:
+    """Most recent observation preceding the target (empty dict if none)."""
+    if len(sample["conversations"]) >= 2:
+        prev = sample["conversations"][-2]
+        if prev["from"] == "observation":
+            try:
+                obs = json.loads(prev["value"])
+                return obs if isinstance(obs, dict) else {}
+            except json.JSONDecodeError:
+                return {}
+    return {}
+
+
+def obs_diagnostic_score(obs: dict) -> int:
+    """Execution feedback value: clean ok / crisp runtime error +1;
+    timeout/output_limit -1; truncated -2."""
+    if not obs:
+        return 0
+    status = str(obs.get("status", "")).lower()
+    if obs.get("truncated") is True:
+        return -2
+    if status in ("ok",):
+        return 1 if not obs.get("truncated") else -2
+    if status in ("timeout", "output_limit", "output_limit_exceeded"):
+        return -1
+    if status == "runtime_error" or obs.get("exit_code") not in (None, 0):
+        error = str(obs.get("error") or obs.get("exception") or "").lower()
+        stderr = str(obs.get("stderr") or "")
+        if any(e in error or e in stderr.lower() for e in CLEAR_RUNTIME_ERRORS):
+            return 1 if len(stderr) < 2000 else 0
+        return 0
+    return 0  # wrong_answer 等：有 failing_input 但无运行诊断，中性
+
+
 def main() -> int:
     train_rows = json.loads((POOL_DIR / "train.json").read_text(encoding="utf-8"))
     manifest_index = {}
@@ -154,6 +214,8 @@ def main() -> int:
             score -= 1
         if state == "problem_submit":
             score -= code_style_penalty(code)
+        if state != "problem_submit":
+            score += obs_diagnostic_score(last_observation(sample))
         entries.append({
             "sample": sample,
             "sample_id": sample_id,
@@ -184,7 +246,10 @@ def main() -> int:
         selected.append(e)
         return True
 
-    for state, want in QUOTAS.items():
+    # rare-state-first: multi-round samples are the scarcest and most valuable;
+    # take them before abundant buckets exhaust a problem's 2-sample cap.
+    for state in SELECTION_ORDER:
+        want = QUOTAS[state]
         bucket = [e for e in entries if e["state_type"] == state]
         bucket.sort(key=lambda e: -e["score"])
         got = 0
@@ -197,20 +262,36 @@ def main() -> int:
             shortfall.append({"state_type": state, "want": want, "got": got,
                               "available": len(bucket)})
 
-    # multi-round routers must exist even if the single-round run buckets
-    # oversubscribed the same problems; fallback: relax to still satisfy run
-    # majority by rebalancing only if below hard floors below.
     run_total = sum(
         1 for e in selected if e["target_tool"] == "run_candidate")
     submit_total = sum(
         1 for e in selected if e["target_tool"] == "submit")
     n = len(selected)
+    state_count = Counter(e["state_type"] for e in selected)
 
-    if n < 280 or n > 320:
-        print("WARN total outside 280..320:", n, flush=True)
-    if run_total < submit_total:
-        print("WARN run samples < submit samples", run_total, submit_total,
-              flush=True)
+    # Hard gates: quota may drift, core behavior floors must hold. 失败即中止，
+    # 绝不带着低于下限的集合进入下一步训练。
+    errors = []
+    if not HARD_GATES["total_min"] <= n <= HARD_GATES["total_max"]:
+        errors.append(f"total {n} outside "
+                      f"[{HARD_GATES['total_min']}, {HARD_GATES['total_max']}]")
+    if HARD_GATES["run_ge_submit"] and run_total < submit_total:
+        errors.append(f"run {run_total} < submit {submit_total}")
+    if state_count["first_failure_run"] < HARD_GATES["first_failure_run_min"]:
+        errors.append(f"first_failure_run {state_count['first_failure_run']} < "
+                      f"{HARD_GATES['first_failure_run_min']}")
+    if state_count["second_failure_run"] < HARD_GATES["second_failure_run_min"]:
+        errors.append(f"second_failure_run {state_count['second_failure_run']} < "
+                      f"{HARD_GATES['second_failure_run_min']}")
+    if state_count["multiround_final_submit"] < HARD_GATES["multiround_final_submit_min"]:
+        errors.append(
+            f"multiround_final_submit {state_count['multiround_final_submit']} < "
+            f"{HARD_GATES['multiround_final_submit_min']}")
+    if errors:
+        raise RuntimeError("hard gate failed: " + "; ".join(errors))
+    if shortfall:
+        print("NOTE quota shortfall (non-blocking, floors still held):",
+              shortfall, flush=True)
 
     # build dev (small, problem-disjoint from train)
     dev_entries = []
