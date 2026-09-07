@@ -98,12 +98,34 @@ def load_training_tokens():
         supervised = [i for i, v in enumerate(labels) if v != -100]
         start = supervised[0]
         end = supervised[-1] + 1
+        # confirm A and C really carry supervision in the LF label stream
+        q = start
+        a_sup = labels[q] == input_ids[q]
+        decoded = tokenizer.decode(input_ids[start:end], skip_special_tokens=False)
+        close_offset = decoded.find("</tool_call>")
+        acc, c_first, c_last = "", None, None
+        for j in range(start, end):
+            piece = tokenizer.decode([input_ids[j]], skip_special_tokens=False)
+            acc += piece
+            if c_first is None and len(acc) > close_offset:
+                c_first = j
+            if c_first is not None and "</tool_call>" not in acc:
+                c_last = j - 1
+                break
+        if c_last is None:
+            c_last = end - 1
+        c_sup = all(labels[j] == input_ids[j] for j in range(c_first, c_last + 1))
         records.append({
             "index": index, "sample_id": row["sample_id"],
             "state_type": kind,
             "target_tool": json.loads(row["conversations"][-1]["value"])["name"],
             "prompt_ids": input_ids[:start],
             "target_ids": input_ids[start:end],
+            "A_supervised": a_sup,
+            "close_token_supervised": c_sup,
+            "close_token_ids": input_ids[c_first:c_last + 1],
+            "close_tokens": tokenizer.decode(input_ids[c_first:c_last + 1],
+                                             skip_special_tokens=False),
         })
     return tokenizer, records
 
@@ -132,13 +154,28 @@ def position_indexes(tokenizer, record):
                 return j
         raise AssertionError(("char-offset overflow", char_offset, acc[-200:]))
 
-    t = token_index_at(tool_offset, q)
+    # B must point INSIDE the tool name content, not at its leading quote:
+    # tool_offset indexes the '"' that opens the name string.
+    name_start = tool_offset + 1
+    t = token_index_at(name_start, q)
+    # whole-name span (all tokens overlapping `submit` / `run_candidate`)
+    span = []
+    acc = ""
+    for j in range(t, len(ids)):
+        piece = tokenizer.decode([ids[j]], skip_special_tokens=False)
+        acc += piece
+        span.append(j)
+        if len(acc) > name_start + len(target_tool):
+            break
     c = token_index_at(close_offset, q)
     return [
         {"name": "A_action_start", "row": q - 1, "gold": ids[q],
          "gold_text": tokenizer.decode([ids[q]], skip_special_tokens=False)},
         {"name": "B_tool_name", "row": t - 1, "gold": ids[t],
-         "gold_text": tokenizer.decode([ids[t]], skip_special_tokens=False)},
+         "gold_text": tokenizer.decode([ids[t]], skip_special_tokens=False),
+         "name_token_count": len(span),
+         "name_tokens": [tokenizer.decode([ids[j]], skip_special_tokens=False)
+                         for j in span]},
         {"name": "C_close_start", "row": c - 1, "gold": ids[c],
          "gold_text": tokenizer.decode([ids[c]], skip_special_tokens=False)},
     ]
@@ -220,7 +257,18 @@ def main():
         "tool_call_open_ids": tokenizer.encode("<tool_call>\n", add_special_tokens=False),
         "tool_call_open_tokens": tokenizer.tokenize("<tool_call>\n"),
         "close_ids": tokenizer.encode("</tool_call>", add_special_tokens=False)},
+        "label_gate_audit": [{"sample_id": r["sample_id"],
+                              "state_type": r["state_type"],
+                              "A_supervised": r["A_supervised"],
+                              "close_token_supervised": r["close_token_supervised"],
+                              "close_tokens": r["close_tokens"]} for r in records],
         "records": [], "by_model": {}}
+    bad = [r for r in records if not r["A_supervised"] or not r["close_token_supervised"]]
+    print("label-gate audit: A/C all supervised =", not bad, flush=True)
+    if bad:
+        print("VIOLATIONS:", json.dumps([{k: r[k] for k in
+              ("sample_id", "A_supervised", "close_token_supervised")}
+              for r in bad]), flush=True)
     for name, adapter in ADAPTERS.items():
         rows = run_probe(adapter, tokenizer, records, device=args.device)
         out["records"].append({"model": name, "rows": rows})
@@ -232,7 +280,8 @@ def main():
                   f"A top1={a['top1_text']!r:<18} gold={a['gold_text']!r:<22} "
                   f"rank={a['gold_rank']:>4} llh={a['gold_logprob']:7.2f} "
                   f"margin={a['margin']:7.2f} | "
-                  f"B rank={b['gold_rank']:>3} acc={int(b['top1_is_gold'])} | "
+                  f"B rank={b['gold_rank']:>3} acc={int(b['top1_is_gold'])} "
+                  f"name_tokens={b.get('name_token_count')} | "
                   f"C rank={c['gold_rank']:>4} acc={int(c['top1_is_gold'])} "
                   f"top1={c['top1_text']!r:<14}", flush=True)
         print("AGG", json.dumps(out["by_model"][name]), flush=True)
