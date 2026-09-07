@@ -261,7 +261,14 @@ def main(target: int) -> int:
             episodes.append(ep)
             used_ids.add(str(ep["id"]))
             count[ep["metadata"]["behavior_sequence"][0]] += 1
-        print(f"resume: {len(episodes)} rows already built", flush=True)
+            if (
+                ep["metadata"]["behavior_sequence"][0] == FAILURE_REPLAY
+                and ep["metadata"].get("tool_sequence", []).count(
+                    "run_candidate") >= 2
+            ):
+                multi_count += 1
+        print(f"resume: {len(episodes)} rows already built "
+              f"(multiround={multi_count})", flush=True)
 
     def persist(episode: dict) -> None:
         with partial.open("a", encoding="utf-8") as handle:

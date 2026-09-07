@@ -92,19 +92,21 @@ def export_prefix_samples(record: dict) -> list[dict]:
                 ),
             }
             if role == "assistant" and message["trainable"]:
-                samples.append({
-                    "sample_id": f"{record['id']}:m{index}",
-                    "conversations": copy.deepcopy(history),
-                    "system": system,
-                    "tools": json.dumps(filtered_tools(), ensure_ascii=False),
-                })
-            if name == "submit":
-                submitted = True
+                sample_tools = json.dumps(filtered_tools(), ensure_ascii=False)
         else:
             raise ValueError(f"unsupported role: {role}")
         if converted["from"] not in role_expected(len(history)):
             raise ValueError(f"m{index}: invalid role sequence")
         history.append(converted)
+        if role == "assistant" and message["trainable"]:
+            samples.append({
+                "sample_id": f"{record['id']}:m{index}",
+                "conversations": copy.deepcopy(history),
+                "system": system,
+                "tools": sample_tools,
+            })
+        if role == "assistant" and name == "submit":
+            submitted = True
     return samples
 
 
