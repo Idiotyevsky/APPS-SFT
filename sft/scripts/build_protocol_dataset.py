@@ -234,9 +234,6 @@ def main() -> int:
     used_problem: Counter[str] = Counter()
     selected: list[dict] = []
     shortfall = []
-    # dev pool: reserve a few problems per type first (problem-disjoint)
-    dev: list[dict] = []
-    dev_problems: set[str] = set()
 
     def take(e):
         pid = str(e["problem_id"])
@@ -293,18 +290,34 @@ def main() -> int:
         print("NOTE quota shortfall (non-blocking, floors still held):",
               shortfall, flush=True)
 
-    # build dev (small, problem-disjoint from train)
+    # build dev: stratified sanity split — 每类 state 4 条（24 total），problem 与
+    # train 及 dev 内部均不相交。只用于早期 checkpoint 的 protocol-loss 观察。
+    DEV_QUOTAS = {state: 4 for state in QUOTAS}
+    train_problems = {str(e["problem_id"]) for e in selected}
     dev_entries = []
-    for e in sorted(entries, key=lambda e: -e["score"]):
-        pid = str(e["problem_id"])
-        if pid in {str(x["problem_id"]) for x in selected}:
-            continue
-        if pid in dev_problems:
-            continue
-        dev_problems.add(pid)
-        dev_entries.append(e)
-        if len(dev_entries) >= 12:
-            break
+    dev_problems = set()
+    for state in SELECTION_ORDER:
+        want = DEV_QUOTAS[state]
+        bucket = sorted((e for e in entries if e["state_type"] == state),
+                        key=lambda e: -e["score"])
+        got = 0
+        for e in bucket:
+            if got >= want:
+                break
+            pid = str(e["problem_id"])
+            if pid in train_problems or pid in dev_problems:
+                continue
+            dev_problems.add(pid)
+            dev_entries.append(e)
+            got += 1
+    if any(len([1 for e in dev_entries if e["state_type"] == s]) < 2
+           for s in QUOTAS):
+        raise RuntimeError(
+            "dev stratified selection under-supplied a state; "
+            "pool lacks problem-disjoint dev candidates")
+    if len(dev_entries) != sum(DEV_QUOTAS.values()):
+        raise RuntimeError(
+            f"dev expected {sum(DEV_QUOTAS.values())} got {len(dev_entries)}")
 
     OUT.mkdir(parents=True, exist_ok=True)
     train_json = [e["sample"] for e in selected]
