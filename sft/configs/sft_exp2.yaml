@@ -1,0 +1,57 @@
+# 实验2：退化回调 —— 1 epoch、lr 2e-5、LoRA 仅 q/k/v/o（去 mlp）
+# 对照 run002：3 epoch / lr 5e-5 / 全 q,k,v,o,gate,up,down
+model_name_or_path: /home/zfs02/model/Qwen2.5-Coder-7B-Instruct
+trust_remote_code: false
+stage: sft
+do_train: true
+do_eval: true
+finetuning_type: lora
+lora_rank: 32
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target: q_proj,k_proj,v_proj,o_proj
+
+dataset_dir: /home/zfs02/jiangjr/data_syn/data/coding_sft
+dataset: coding_agent_train
+eval_dataset: coding_agent_dev
+template: qwen
+tool_format: qwen
+cutoff_len: 8192
+train_on_prompt: false
+mask_history: true
+packing: false
+overwrite_cache: true
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+
+output_dir: /home/zfs02/jiangjr/data_syn/sft/outputs/exp2_qkvo
+overwrite_output_dir: false
+logging_steps: 1
+save_strategy: steps
+save_steps: 25
+save_total_limit: 5
+eval_strategy: epoch
+save_only_model: false
+load_best_model_at_end: false
+plot_loss: true
+report_to: wandb
+run_name: toolapps-sft-exp2-qkvo-1ep
+
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 2.0e-5
+num_train_epochs: 1.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.0
+max_grad_norm: 1.0
+optim: adamw_torch
+bf16: true
+fp16: false
+flash_attn: sdpa
+disable_gradient_checkpointing: false
+ddp_find_unused_parameters: false
+seed: 42
+data_seed: 42
+resume_from_checkpoint: null

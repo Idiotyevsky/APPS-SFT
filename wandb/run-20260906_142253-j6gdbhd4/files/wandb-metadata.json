@@ -1,0 +1,91 @@
+{
+  "os":  "Linux-6.8.0-110-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.12.7",
+  "startedAt":  "2026-09-06T06:22:53.970381Z",
+  "args":  [
+    "sft/configs/sft_smoke.yaml",
+    "report_to=wandb",
+    "run_name=toolapps-smoke-wandb",
+    "output_dir=/home/zfs02/jiangjr/data_syn/sft/outputs/smoke_wandb"
+  ],
+  "program":  "/home/zfs02/jiangjr/data_syn/./sft-venv/bin/llamafactory-cli",
+  "codePath":  "sft-venv/bin/llamafactory-cli",
+  "codePathLocal":  "sft-venv/bin/llamafactory-cli",
+  "email":  "jinrui_jiang@smail.nju.edu.cn",
+  "root":  "/home/zfs02/jiangjr/data_syn",
+  "host":  "A6000-6",
+  "executable":  "/home/zfs02/jiangjr/data_syn/sft-venv/bin/python",
+  "cpu_count":  128,
+  "cpu_count_logical":  128,
+  "gpu":  "NVIDIA RTX A6000",
+  "gpu_count":  8,
+  "disk":  {
+    "/":  {
+      "total":  "934596403200",
+      "used":  "493190443008"
+    }
+  },
+  "memory":  {
+    "total":  "540704604160"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-f8e4249d-5fea-a521-6d61-1f3f6f860cd4"
+    },
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-c5c6c34a-1ed5-5f86-3b43-a0b1e19b37dc"
+    },
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-a3b9fbe5-0e3c-76fd-00b1-a8ae4287b6f7"
+    },
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-8918487e-133a-4be6-12a4-2c94b7f27861"
+    },
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-81ff5638-8034-b6b3-04dc-1b4ef366af1a"
+    },
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-a0b0e3b8-c515-b565-fbf2-38b5f3ead030"
+    },
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-7519600b-a54e-ef81-116d-91e8aee53176"
+    },
+    {
+      "name":  "NVIDIA RTX A6000",
+      "memoryTotal":  "51527024640",
+      "cudaCores":  10752,
+      "architecture":  "Ampere",
+      "uuid":  "GPU-ec6423f7-7c00-cb1f-1bca-31321398046c"
+    }
+  ],
+  "cudaVersion":  "13.0",
+  "writerId":  "jqw5b0in4bnhk5bk8d2gkj3g3osr5rgm"
+}

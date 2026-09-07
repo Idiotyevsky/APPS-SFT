@@ -1,0 +1,57 @@
+# SFT LoRA 主配置 —— 见 docs/LLAMA_FACTORY_SFT_IMPLEMENTATION_SPEC.md §8.2
+model_name_or_path: /home/zfs02/model/Qwen2.5-Coder-7B-Instruct
+trust_remote_code: false
+stage: sft
+do_train: true
+do_eval: true
+finetuning_type: lora
+lora_rank: 32
+lora_alpha: 32
+lora_dropout: 0.0
+lora_target: q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+
+dataset_dir: /home/zfs02/jiangjr/data_syn/data/coding_sft
+dataset: coding_agent_train
+eval_dataset: coding_agent_dev
+template: qwen
+tool_format: qwen
+cutoff_len: 8192
+train_on_prompt: false
+mask_history: true
+packing: false
+overwrite_cache: true
+preprocessing_num_workers: 4
+dataloader_num_workers: 2
+
+output_dir: /home/zfs02/jiangjr/data_syn/sft/outputs/run_001
+overwrite_output_dir: false
+logging_steps: 1
+save_strategy: epoch
+eval_strategy: epoch
+save_total_limit: 3
+save_only_model: false
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+greater_is_better: false
+plot_loss: true
+report_to: wandb
+run_name: toolapps-sft-run001
+
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 5.0e-5
+num_train_epochs: 3.0
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+weight_decay: 0.0
+max_grad_norm: 1.0
+optim: adamw_torch
+bf16: true
+fp16: false
+flash_attn: sdpa
+disable_gradient_checkpointing: false
+ddp_find_unused_parameters: false
+seed: 42
+data_seed: 42
+resume_from_checkpoint: null

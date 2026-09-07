@@ -1,0 +1,11 @@
+# LoRA 合并导出 —— 交付 veRL / 评测用（spec §11）
+model_name_or_path: /home/zfs02/model/Qwen2.5-Coder-7B-Instruct
+adapter_name_or_path: /home/zfs02/jiangjr/data_syn/sft/outputs/run_002_2gpu/checkpoint-399
+trust_remote_code: false
+template: qwen
+tool_format: qwen
+finetuning_type: lora
+export_dir: /home/zfs02/jiangjr/data_syn/sft/exports/sft_merged
+export_size: 4
+export_device: cpu
+export_legacy_format: false

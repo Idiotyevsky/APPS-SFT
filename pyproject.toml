@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coding-agent-synthesis"
+version = "0.1.0"
+description = "Evidence-driven APPS coding-agent data synthesis"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+model = ["transformers>=4.45", "torch>=2.1"]
+yaml = ["PyYAML>=6"]
+test = ["pytest>=7"]
+
+[project.scripts]
+synthesis = "synthesis.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+

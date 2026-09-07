@@ -1,0 +1,37 @@
+split_seed: 42
+generation_seed: 2026
+model: Qwen/Qwen2.5-Coder-7B-Instruct
+model_revision: null
+apps_revision: null
+apps_sha256: null
+counterfactual_samples: 3
+high_threshold: 0.6666667
+low_threshold: 0.3333333
+min_utility: 0.3333333
+target_count: 1200
+strict_quota: true
+candidate_timeout_sec: 3.0
+candidate_memory_mb: 512
+max_output_bytes: 65536
+max_input_bytes: 65536
+sandbox_backend: bwrap
+max_wall_hours: 72
+max_gpu_hours: 288
+max_failed_candidate_rate: 0.95
+minimum_candidates_per_minute: 0.05
+source_ratios:
+  synthetic_single: 0.30
+  synthetic_multi: 0.30
+  model_natural_failure: 0.25
+  verified_reference: 0.10
+  model_natural_correct: 0.05
+behavior_ratios:
+  post_submit_direct_repair: 0.25
+  post_submit_failure_replay: 0.30
+  pre_submit_active_validation: 0.30
+  direct_submission: 0.15
+difficulty_ratios:
+  introductory: 0.25
+  interview: 0.45
+  competition: 0.30
+

@@ -1,0 +1,21 @@
+# 依赖/环境
+sft-venv/
+sft/llama-factory/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# 大文件与产物（不推送）
+data/raw/
+data/.cache/
+data/sft_final/
+data/rl/
+data/eval/
+data/sft_debug_rule_handoff/
+data/coding_sft/
+data/coding_sft_v3/
+data/coding_sft_v3_episodes/
+sft/outputs/
+sft/exports/
+*.log

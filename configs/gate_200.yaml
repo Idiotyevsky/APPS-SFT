@@ -1,0 +1,8 @@
+target_count: 200
+strict_quota: true
+max_wall_hours: 72
+max_gpu_hours: 288
+max_failed_candidate_rate: 0.95
+minimum_candidates_per_minute: 0.05
+manual_audit_minimum: 40
+

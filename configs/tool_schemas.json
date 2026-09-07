@@ -1,0 +1,29 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "run_candidate",
+      "description": "Run the current candidate program on one model-provided input and return its observable execution result.",
+      "parameters": {
+        "type": "object",
+        "properties": {"input": {"type": "string"}},
+        "required": ["input"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "submit",
+      "description": "Submit a complete solution to the private grader.",
+      "parameters": {
+        "type": "object",
+        "properties": {"code": {"type": "string"}},
+        "required": ["code"],
+        "additionalProperties": false
+      }
+    }
+  }
+]
+

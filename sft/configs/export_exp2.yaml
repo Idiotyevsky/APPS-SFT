@@ -1,0 +1,10 @@
+model_name_or_path: /home/zfs02/model/Qwen2.5-Coder-7B-Instruct
+adapter_name_or_path: /home/zfs02/jiangjr/data_syn/sft/outputs/exp2_qkvo/checkpoint-133
+trust_remote_code: false
+template: qwen
+tool_format: qwen
+finetuning_type: lora
+export_dir: /home/zfs02/jiangjr/data_syn/sft/exports/sft_exp2_merged
+export_size: 4
+export_device: cpu
+export_legacy_format: false
