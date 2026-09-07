@@ -100,8 +100,11 @@ def main() -> int:
         "coding_agent_train", "coding_agent_dev",
         "coding_agent_smoke", "coding_agent_structure",
     }:
+        dataset_dir = Path(cfg["dataset_dir"])
+        if not dataset_dir.is_absolute():
+            dataset_dir = ROOT / dataset_dir
         name = args.dataset.replace("coding_agent_", "")
-        path = ROOT / "data/coding_sft" / f"{name}.json"
+        path = dataset_dir / f"{name}.json"
         if path.exists():
             rows = json.loads(path.read_text(encoding="utf-8"))
             for row in rows:

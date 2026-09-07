@@ -183,14 +183,22 @@ def build_post_submit_repair(
     reference: str, behavior: str, grader: PrivateGrader, config: Any,
     use_run: bool,
 ) -> dict[str, Any]:
-    """Direct repair or failure replay over a real failing candidate."""
+    """Direct repair or failure replay over a real failing candidate.
+
+    V3: the failure is represented as real assistant->tool history
+    (user(problem) -> submit(bad)[mask] -> tool failure) so training matches
+    the agent evaluator state distribution.
+    """
     public = problem.public_problem
     code = candidate["code"]
     seed_feedback = dict(candidate["seed_submit"])
     failing = seed_feedback.get("failing_input")
     if not isinstance(failing, str):
         raise ValueError("post-submit repair requires a failing input")
-    state = build_post_submit_state(public, code, seed_feedback)
+    state = build_problem_only_state(public)
+    state = append_tool_observation(
+        state, "submit", {"code": code}, seed_feedback, trainable=False,
+    )
     if use_run:
         observation = _run_observation(grader, problem, code, failing)
         messages = append_tool_observation(
@@ -295,7 +303,11 @@ def build_multiround(
     mutation = candidate.get("mutation") or {}
     if not isinstance(failing_one, str) or mutation.get("bug_count", 0) < 2:
         raise ValueError("multiround requires a failing input and >=2 edits")
-    state = build_post_submit_state(public, code, seed_feedback)
+
+    state = build_problem_only_state(public)
+    state = append_tool_observation(
+        state, "submit", {"code": code}, seed_feedback, trainable=False,
+    )
 
     partial_feedback = _grade_feedback(grader, problem, partial)
     if partial_feedback["status"] == "accepted":

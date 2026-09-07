@@ -32,13 +32,39 @@ def _executor(config: SynthesisConfig) -> PrivateGrader:
 
 
 def _initial_candidate(messages: list[dict[str, Any]]) -> str:
+    """Return the starting program under replay.
+
+    Native V4 format: the first assistant action is a masked submit(code);
+    legacy format embeds the candidate in the user state text.
+    """
     for message in messages:
         if message.get("role") != "user":
             continue
         match = _CANDIDATE_PATTERN.search(message.get("content") or "")
         if match:
             return match.group(1) + "\n"
+    for message in messages:
+        if message.get("role") != "assistant":
+            continue
+        calls = message.get("tool_calls") or []
+        if not calls:
+            continue
+        call = calls[0]
+        if call.get("name") == "submit" and isinstance(
+            call.get("arguments"), dict
+        ) and isinstance(call["arguments"].get("code"), str):
+            return call["arguments"]["code"]
     return ""
+
+
+def _is_native_history(messages: list[dict[str, Any]]) -> bool:
+    """True when the failure state is a real assistant submit->tool history."""
+    for message in messages:
+        if message.get("role") == "assistant":
+            calls = message.get("tool_calls") or []
+            if calls and calls[0].get("name") == "submit":
+                return True
+    return False
 
 
 def _stable_run(value: dict[str, Any]) -> dict[str, Any]:
@@ -81,7 +107,8 @@ def replay_artifacts(
         current = _initial_candidate(episode["messages"])
         latest_feedback: dict[str, Any] | None = None
         primary = metadata["behavior_sequence"][0]
-        if primary.startswith("post_submit_"):
+        messages = episode["messages"]
+        if primary.startswith("post_submit_") and not _is_native_history(messages):
             first = grader.grade(
                 current, private.inputs, private.outputs,
                 public.io_mode, public.fn_name,
@@ -114,7 +141,10 @@ def replay_artifacts(
                     "code": "seed_replay",
                     "message": "seed failure evidence does not replay",
                 })
-        messages = episode["messages"]
+        else:
+            # Native V4 history: the leading masked submit and each later turn
+            # are validated message-by-message in the loop below.
+            pass
         final_code: str | None = None
         for index, message in enumerate(messages):
             if message.get("role") != "assistant":

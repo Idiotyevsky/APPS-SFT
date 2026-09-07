@@ -35,16 +35,30 @@ def record_hash(row: dict) -> str:
 
 
 def export_prefix_samples(record: dict) -> list[dict]:
-    """Spec §3.3 converter: one prefix sample per trainable assistant action."""
+    """Spec §3.3 converter: one prefix sample per trainable assistant action.
+
+    Tool availability mirrors the real evaluator: until the first ``submit``
+    appears in history only ``submit`` is exposed; afterwards both
+    ``run_candidate`` and ``submit`` are exposed.
+    """
     messages = record["messages"]
     if not messages or messages[0]["role"] != "system":
         raise ValueError("expected leading system message")
     system = messages[0]["content"]
     if system is None or messages[0].get("trainable") is not False:
         raise ValueError("system must carry trainable=false and content")
-    tools = json.dumps(record["tools"], ensure_ascii=False)
     history: list[dict] = []
     samples: list[dict] = []
+    submitted = False
+
+    def filtered_tools():
+        names = {"submit"}
+        if submitted:
+            names.add("run_candidate")
+        return [
+            tool for tool in record["tools"]
+            if tool.get("function", {}).get("name") in names
+        ]
 
     def role_expected(length: int) -> set[str]:
         return {"human", "observation"} if length % 2 == 0 else {"function_call"}
@@ -77,18 +91,20 @@ def export_prefix_samples(record: dict) -> list[dict]:
                     {"name": name, "arguments": arguments}, ensure_ascii=False
                 ),
             }
+            if role == "assistant" and message["trainable"]:
+                samples.append({
+                    "sample_id": f"{record['id']}:m{index}",
+                    "conversations": copy.deepcopy(history),
+                    "system": system,
+                    "tools": json.dumps(filtered_tools(), ensure_ascii=False),
+                })
+            if name == "submit":
+                submitted = True
         else:
             raise ValueError(f"unsupported role: {role}")
         if converted["from"] not in role_expected(len(history)):
             raise ValueError(f"m{index}: invalid role sequence")
         history.append(converted)
-        if role == "assistant" and message["trainable"]:
-            samples.append({
-                "sample_id": f"{record['id']}:m{index}",
-                "conversations": copy.deepcopy(history),
-                "system": system,
-                "tools": tools,
-            })
     return samples
 
 

@@ -39,20 +39,24 @@ from synthesis.qa import run_qa, write_qa_report  # noqa: E402
 from synthesis.report import build_manifest  # noqa: E402
 from synthesis.rule_synthesizer import (  # noqa: E402
     ACTIVE_VALIDATION, DIRECT_REPAIR, DIRECT_SUBMISSION, FAILURE_REPLAY,
-    build_active_validation, build_direct_submission, build_post_submit_repair,
+    build_active_validation, build_direct_submission, build_multiround,
+    build_post_submit_repair,
 )
 
 APPS = ROOT_DIR / "data/raw/apps/train.jsonl"
 RL_SPLITS = ROOT_DIR / "data/rl/splits.json"
-OUT = ROOT_DIR / "data/sft_final"
+OUT = ROOT_DIR / "data/sft_v4_final"
 POOL_CACHE = ROOT_DIR / "data/.cache/rule_sft_pool.jsonl"
 
 DIFF_ORDER = ("introductory", "interview", "competition")
 
 # soft caps: direct-submission rows are unlimited (every usable problem can
-# yield one); active probing is capped to bound runtime.
+# yield one); active probing is OFF for the formal set (no external-candidate
+# mechanism in the problem-only evaluator). Multi-round repair cap: convert up
+# to MULTIROUND_TARGET multi-bug candidates into true iterative episodes.
 CAP_DIRECT = 1000000
-CAP_ACTIVE = 60
+CAP_ACTIVE = 0
+MULTIROUND_TARGET = 250
 
 
 # ---------------------------------------------------------------------------
@@ -205,6 +209,7 @@ def load_pool():
 
 def main(target: int) -> int:
     started = time.monotonic()
+    OUT.mkdir(parents=True, exist_ok=True)
     entries = load_pool()
     from synthesis.config import SynthesisConfig, save_resolved_config
     from synthesis.grader import PrivateGrader
@@ -249,6 +254,7 @@ def main(target: int) -> int:
     episodes: list[dict] = []
     count = {"direct_submission": 0, DIRECT_REPAIR: 0,
              FAILURE_REPLAY: 0, ACTIVE_VALIDATION: 0}
+    multi_count = 0
     used_ids: set[str] = set()
     if partial.exists():
         for ep in read_jsonl(partial):
@@ -300,9 +306,31 @@ def main(target: int) -> int:
                     return ep
             return None
 
+        def attempt_multiround():
+            for candidate in row.get("multis", []):
+                if not candidate.get("partial_code"):
+                    continue
+                if (candidate.get("mutation") or {}).get("bug_count", 0) < 2:
+                    continue
+                try:
+                    ep = build_multiround(
+                        problem, candidate, ref, candidate["partial_code"],
+                        gr, config,
+                    )
+                except ValueError:
+                    continue
+                if ep is not None:
+                    return ep
+            return None
+
         chosen = None
-        # active first (rarest), then replay, then direct repair; direct last
-        if count[ACTIVE_VALIDATION] < CAP_ACTIVE:
+        # multi-round repair first (P0), then replay/direct-repair; active is OFF.
+        if multi_count < MULTIROUND_TARGET and row.get("multis"):
+            chosen = attempt_multiround()
+            if chosen is not None:
+                multi_count += 1
+                count[FAILURE_REPLAY] += 1
+        if chosen is None and count[ACTIVE_VALIDATION] < CAP_ACTIVE:
             chosen = attempt(ACTIVE_VALIDATION)
             if chosen is not None:
                 count[ACTIVE_VALIDATION] += 1
@@ -334,7 +362,8 @@ def main(target: int) -> int:
 
     episodes.sort(key=lambda item: str(item["id"]))
     print(
-        "built rows:", len(episodes), "behavior counts:", dict(count), flush=True,
+        "built rows:", len(episodes), "behavior counts:", dict(count),
+        "multiround:", multi_count, flush=True,
     )
     if not episodes:
         raise RuntimeError("no episodes produced")

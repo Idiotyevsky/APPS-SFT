@@ -104,8 +104,13 @@ def validate_metadata(value: dict[str, Any]) -> list[str]:
         errors.append("tool sequence must end in submit")
     if primary == Behavior.DIRECT_SUBMISSION.value and tools != ["submit"]:
         errors.append("direct submission contains extra tools")
-    if primary == Behavior.POST_SUBMIT_DIRECT_REPAIR.value and tools != ["submit"]:
-        errors.append("direct repair contains extra tools")
+    if primary == Behavior.POST_SUBMIT_DIRECT_REPAIR.value and (
+        "run_candidate" in tools or not tools or tools[-1] != "submit"
+    ):
+        errors.append(
+            "direct repair must not run and must end in a submit "
+            "(masked context submits are allowed)"
+        )
     counterfactual = value.get("counterfactual")
     rule_design = value.get("label_method") == "rule_design"
     if primary == Behavior.DIRECT_SUBMISSION.value:

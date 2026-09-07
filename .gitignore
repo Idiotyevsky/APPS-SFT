@@ -19,3 +19,5 @@ data/coding_sft_v3_episodes/
 sft/outputs/
 sft/exports/
 *.log
+wandb/
+data/sft_v4_final/

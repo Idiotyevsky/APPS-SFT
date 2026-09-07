@@ -252,17 +252,36 @@ def validate_episode_static(
     sequence = metadata.get("behavior_sequence") or []
     behavior = sequence[0] if sequence else None
     names = [call.get("name") for call in calls]
+    trainable_names = [
+        call.get("name")
+        for message in messages
+        if message.get("role") == "assistant" and message.get("trainable")
+        for call in (message.get("tool_calls") or [])
+    ]
     if behavior == Behavior.POST_SUBMIT_DIRECT_REPAIR.value:
-        if names != ["submit"]:
+        if (
+            not names or names[-1] != "submit"
+            or "run_candidate" in names
+            or trainable_names != ["submit"]
+        ):
             _issue(
                 issues, "behavior_protocol",
-                "direct repair must contain only submit", episode_id,
+                "direct repair may carry masked context submits but must "
+                "never run and must end with a single trainable submit",
+                episode_id,
             )
     elif behavior == Behavior.POST_SUBMIT_FAILURE_REPLAY.value:
-        if not names or names[0] != "run_candidate" or names[-1] != "submit":
+        if (
+            not names or names[-1] != "submit"
+            or "run_candidate" not in names
+            or not trainable_names
+            or trainable_names[0] != "run_candidate"
+        ):
             _issue(
                 issues, "behavior_protocol",
-                "failure replay must run first and submit last", episode_id,
+                "failure replay may carry a masked submit prefix but its first "
+                "trainable action must be run_candidate and it must end with "
+                "submit", episode_id,
             )
         query = metadata.get("execution_query") or {}
         if not query.get("matches_submit_failing_input"):
@@ -271,7 +290,12 @@ def validate_episode_static(
                 "failing-input byte identity is not proven", episode_id,
             )
     elif behavior == Behavior.PRE_SUBMIT_ACTIVE_VALIDATION.value:
-        if not names or names[0] != "run_candidate" or names[-1] != "submit":
+        if (
+            not names or names[-1] != "submit"
+            or "run_candidate" not in names
+            or not trainable_names
+            or trainable_names[0] != "run_candidate"
+        ):
             _issue(
                 issues, "behavior_protocol",
                 "active validation must run first and submit last", episode_id,
@@ -304,10 +328,11 @@ def validate_episode_static(
                 "active input lacks observable-only provenance", episode_id,
             )
     elif behavior == Behavior.DIRECT_SUBMISSION.value:
-        if names != ["submit"]:
+        if names != ["submit"] or trainable_names != ["submit"]:
             _issue(
                 issues, "behavior_protocol",
-                "direct submission must contain only submit", episode_id,
+                "direct submission must contain only a trainable submit",
+                episode_id,
             )
     else:
         _issue(issues, "schema", "unknown or missing behavior", episode_id)

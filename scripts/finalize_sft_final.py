@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 warnings.simplefilter("ignore")
 
-OUT = ROOT / "data/sft_final"
+OUT = ROOT / Path(__import__("os").environ.get(
+    "SFT_FINAL_OUT", "data/sft_final"))
 SHARDS = 24
 
 from synthesis.config import SynthesisConfig
