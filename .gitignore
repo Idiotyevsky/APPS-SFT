@@ -21,3 +21,6 @@ sft/exports/
 *.log
 wandb/
 data/sft_v4_final/
+data/coding_sft_v4/
+data/coding_sft_v5/
+data/sft_v5_final/
