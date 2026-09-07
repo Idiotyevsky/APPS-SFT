@@ -58,12 +58,26 @@ def _initial_candidate(messages: list[dict[str, Any]]) -> str:
 
 
 def _is_native_history(messages: list[dict[str, Any]]) -> bool:
-    """True when the failure state is a real assistant submit->tool history."""
-    for message in messages:
-        if message.get("role") == "assistant":
-            calls = message.get("tool_calls") or []
-            if calls and calls[0].get("name") == "submit":
+    """True when the failure state is a real assistant submit->tool history.
+
+    Native V4 shape begins with a masked ``assistant submit(code)`` whose very
+    next message is the matching ``tool`` failure response. A lone final
+    trainable submit (legacy V2) must NOT qualify.
+    """
+    for index, message in enumerate(messages[:-1]):
+        if message.get("role") != "assistant":
+            continue
+        calls = message.get("tool_calls") or []
+        if not calls or calls[0].get("name") != "submit":
+            continue
+        if not message.get("trainable"):
+            following = messages[index + 1]
+            if (following.get("role") == "tool"
+                    and following.get("name") == "submit"):
                 return True
+            return False
+        # a masked submit must precede any trainable submit in native history
+        return False
     return False
 
 

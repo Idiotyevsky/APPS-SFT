@@ -66,6 +66,38 @@ def test_c_sample_only_submit_tool():
     assert tool_names(samples[0]) == ["submit"]
 
 
+def test_multiround_three_prefix_samples():
+    record = {
+        "id": "mr", "tools": TOOLS,
+        "messages": [
+            {"role": "system", "content": "sys", "trainable": False},
+            {"role": "user", "content": "Problem", "trainable": False},
+            msg("assistant", "submit", "bad1", False),
+            msg("tool", "submit", content='{"status":"wrong_answer"}', trainable=False),
+            msg("assistant", "run_candidate", "c1", True),
+            msg("tool", "run_candidate", content='{"status":"ok"}', trainable=False),
+            msg("assistant", "submit", "bad2", False),
+            msg("tool", "submit", content='{"status":"wrong_answer"}', trainable=False),
+            msg("assistant", "run_candidate", "c2", True),
+            msg("tool", "run_candidate", content='{"status":"ok"}', trainable=False),
+            msg("assistant", "submit", "good", True),
+            msg("tool", "submit", content='{"status":"accepted"}', trainable=False),
+        ],
+    }
+    samples = prepare_sft.export_prefix_samples(record)
+    assert len(samples) == 3
+    targets = [json.loads(s["conversations"][-1]["value"])["name"]
+               for s in samples]
+    assert targets == ["run_candidate", "run_candidate", "submit"]
+    for sample, expected_target in zip(samples, targets):
+        funcs = names(sample)
+        assert funcs[-1] == expected_target
+        # every history sample includes the masked failed submits as context
+        assert "submit" in funcs[:-1]
+        # tool availability after first submit exposes both tools
+        assert tool_names(sample) == ["run_candidate", "submit"]
+
+
 def test_b1_router_and_repair_samples():
     record = {
         "id": "b1", "tools": TOOLS,

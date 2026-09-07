@@ -141,7 +141,7 @@ def main() -> int:
             decoded = tokenizer.decode(
                 [input_ids[i] for i in spans], skip_special_tokens=False)
             rows = json.loads(
-                (ROOT / "data/coding_sft/structure.json")
+                (dataset_dir / "structure.json")
                 .read_text(encoding="utf-8"))
             history = rows[index]["conversations"][:-1]
             final_value = rows[index]["conversations"][-1]["value"]
