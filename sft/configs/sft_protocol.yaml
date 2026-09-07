@@ -24,9 +24,10 @@ output_dir: /home/zfs02/jiangjr/data_syn/sft/outputs/protocol_run01
 overwrite_output_dir: false
 logging_steps: 1
 save_strategy: steps
-save_steps: 25
+save_steps: 5
 save_total_limit: 5
-eval_strategy: epoch
+eval_strategy: steps
+eval_steps: 5
 save_only_model: false
 load_best_model_at_end: false
 plot_loss: true
