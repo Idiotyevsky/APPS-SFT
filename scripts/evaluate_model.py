@@ -192,6 +192,7 @@ def main() -> int:
         templated = [
             tokenizer.apply_chat_template(
                 build_prompt(row), tokenize=False, add_generation_prompt=True,
+                enable_thinking=False,
             )
             for row in rows
         ]

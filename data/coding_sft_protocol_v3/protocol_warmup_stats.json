@@ -1,0 +1,31 @@
+{
+  "total_samples": 238,
+  "dev_samples": 24,
+  "distinct_train_problems": 138,
+  "by_state_type": {
+    "second_failure_run": 43,
+    "multiround_final_submit": 46,
+    "first_failure_direct_repair": 21,
+    "post_run_repair": 60,
+    "problem_submit": 30,
+    "first_failure_run": 38
+  },
+  "by_target_tool": {
+    "run_candidate": 81,
+    "submit": 157
+  },
+  "retained_v2_samples": 169,
+  "grounded_source_trajectories": 23,
+  "grounded_prefix_samples": 69,
+  "grounded_by_state": {
+    "post_run_repair": 8,
+    "second_failure_run": 23,
+    "multiround_final_submit": 23,
+    "first_failure_direct_repair": 15
+  },
+  "removed_policy": {
+    "multi_bug_direct_reference_target": "removed",
+    "multi_bug_post_run_without_partial_improvement": "removed",
+    "multi_bug_post_run_with_partial_improvement": "replaced by 3-step trajectory"
+  }
+}

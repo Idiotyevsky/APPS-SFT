@@ -15,8 +15,8 @@
   python scripts/prepare_sft.py \
       --episodes ../../data/sft_final/episodes.jsonl \
       --metadata ../../data/sft_final/metadata.jsonl \
-      --out ../../data/coding_sft \
-      --extra-episodes ../../data/sft_debug_rule_handoff/episodes.jsonl
+      --out ../../data/work/exports/coding_sft_current \
+      --extra-episodes ../../data/archive/datasets/sft_debug_rule_handoff/episodes.jsonl
 """
 from __future__ import annotations
 
@@ -159,7 +159,7 @@ def main() -> int:
     parser.add_argument("--metadata", required=True, type=Path,
                         default=Path("data/sft_final/metadata.jsonl"))
     parser.add_argument("--out", required=True, type=Path,
-                        default=Path("data/coding_sft"))
+                        default=Path("data/work/exports/coding_sft_current"))
     parser.add_argument("--extra-episodes", type=Path, default=None,
                         help="optional extra trajectories (e.g. masked-submit fixture)")
     parser.add_argument("--dev-ratio", type=float, default=0.1)

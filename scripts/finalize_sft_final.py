@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parallel, quiet offline QA over data/sft_final episodes (1500 rows)."""
+"""Parallel, quiet offline QA over a formal SFT candidate directory."""
 import json
 import shutil
 import sys
@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 warnings.simplefilter("ignore")
 
 OUT = ROOT / Path(__import__("os").environ.get(
-    "SFT_FINAL_OUT", "data/sft_final"))
+    "SFT_FINAL_OUT", "data/work/formal_candidate"))
 SHARDS = 24
 
 from synthesis.config import SynthesisConfig

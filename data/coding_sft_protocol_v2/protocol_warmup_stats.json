@@ -1,0 +1,32 @@
+{
+  "total_samples": 300,
+  "distinct_problems": 207,
+  "by_state_type": {
+    "second_failure_run": 20,
+    "multiround_final_submit": 25,
+    "first_failure_direct_repair": 55,
+    "post_run_repair": 90,
+    "problem_submit": 30,
+    "first_failure_run": 80
+  },
+  "by_target_tool": {
+    "run_candidate": 100,
+    "submit": 200
+  },
+  "by_difficulty": {
+    "introductory": 164,
+    "interview": 136
+  },
+  "by_behavior": {
+    "post_submit_failure_replay": 215,
+    "post_submit_direct_repair": 55,
+    "direct_submission": 30
+  },
+  "run_candidate_sample_count": 100,
+  "submit_sample_count": 200,
+  "submit_code_tokens_est_total": 21613,
+  "problems_with_1_sample": 114,
+  "problems_with_2_samples": 93,
+  "quota_shortfalls": [],
+  "dev_samples": 24
+}

@@ -1,0 +1,24 @@
+{
+  "total_samples": 144,
+  "dev_samples": 24,
+  "distinct_train_problems": 112,
+  "by_state_type": {
+    "problem_submit": 30,
+    "first_failure_run": 38,
+    "first_failure_direct_repair": 6,
+    "post_run_repair": 36,
+    "second_failure_run": 16,
+    "multiround_final_submit": 18
+  },
+  "by_target_tool": {
+    "submit": 90,
+    "run_candidate": 54
+  },
+  "selection_seed": "14b-protocol-light-v1",
+  "policy": {
+    "repair_states": "single-bug only",
+    "second_failure_run": "mutation-grounded only",
+    "multiround_final_submit": "original bug count 2 only",
+    "multi_bug_direct_repair": "excluded"
+  }
+}

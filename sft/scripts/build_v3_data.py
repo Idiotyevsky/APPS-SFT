@@ -19,7 +19,8 @@ assistant submit → tool failure 的真实多轮历史。二者结构错位 →
 用法：
   PYTHONPATH=src python3 sft/scripts/build_v3_data.py
 产出：
-  data/coding_sft_v3_episodes/{episodes,metadata}.jsonl   （供 prepare_sft 复用）
+  data/work/legacy_builds/coding_sft_v3_episodes/{episodes,metadata}.jsonl
+  （供 prepare_sft 复用）
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SRC_EP = ROOT / "data/sft_final/episodes.jsonl"
 SRC_META = ROOT / "data/sft_final/metadata.jsonl"
-OUT_DIR = ROOT / "data/coding_sft_v3_episodes"
+OUT_DIR = ROOT / "data/work/legacy_builds/coding_sft_v3_episodes"
 
 CAND = re.compile(r"Current candidate:\n```python\n(.*?)\n```", re.DOTALL)
 FEEDBACK = re.compile(r"Previous submit result:\n(\{.*\})", re.DOTALL)

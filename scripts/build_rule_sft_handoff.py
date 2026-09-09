@@ -53,7 +53,7 @@ from synthesis.schemas import CleanProblem  # noqa: E402
 from synthesis.showcase import generate_showcase  # noqa: E402
 
 APPS = ROOT_DIR / "data/raw/apps/train.jsonl"
-OUT = ROOT_DIR / "data/sft_debug_rule_handoff"
+OUT = ROOT_DIR / "data/work/legacy_builds/sft_debug_rule_handoff"
 CACHE = ROOT_DIR / "data/.cache/rule_handoff_pool.json"
 
 BEHAVIOR_NEEDS = {

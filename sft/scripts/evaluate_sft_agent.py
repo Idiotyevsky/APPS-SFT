@@ -102,6 +102,7 @@ def main():
     parser.add_argument("--constrain-actions", action="store_true",
                         help="constrain each model turn to the exact tool-action JSON schema")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--temperature", type=float, default=0.0)
     args = parser.parse_args()
     if (args.mode != "problem-only") != bool(args.candidates):
         parser.error("candidate/repair modes require --candidates; problem-only must not use it")
@@ -180,7 +181,7 @@ def main():
         constrained_cache = {}
 
         def generate(ids, budget, allowed_names):
-            sampling_kwargs = dict(temperature=0.0, top_p=1.0, max_tokens=budget,
+            sampling_kwargs = dict(temperature=args.temperature, top_p=1.0, max_tokens=budget,
                                    seed=42, skip_special_tokens=False)
             if args.constrain_actions:
                 key = tuple(allowed_names)

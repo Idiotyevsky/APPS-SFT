@@ -45,7 +45,8 @@ from synthesis.rule_synthesizer import (  # noqa: E402
 
 APPS = ROOT_DIR / "data/raw/apps/train.jsonl"
 RL_SPLITS = ROOT_DIR / "data/rl/splits.json"
-OUT = ROOT_DIR / "data/sft_v5_final"
+OUT = ROOT_DIR / Path(__import__("os").environ.get(
+    "SFT_FORMAL_WORK_OUT", "data/work/formal_candidate"))
 POOL_CACHE = ROOT_DIR / "data/.cache/rule_sft_pool.jsonl"
 
 DIFF_ORDER = ("introductory", "interview", "competition")

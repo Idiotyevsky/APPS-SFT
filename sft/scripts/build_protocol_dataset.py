@@ -34,7 +34,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-POOL_DIR = ROOT / "data/coding_sft_v5"
+POOL_DIR = ROOT / "data/work/pools/coding_sft_v5"
 OUT = ROOT / "data/coding_sft_protocol"
 
 QUOTAS = {

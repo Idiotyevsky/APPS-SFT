@@ -291,7 +291,8 @@ def evaluate_problem(row, tokenizer, generate, config, candidate=None, env_facto
             available_tools = [tool for tool in tool_schemas()
                                if tool["function"]["name"] in allowed_names]
             ids = tokenizer.apply_chat_template(messages, tools=available_tools,
-                    tokenize=True, add_generation_prompt=True)
+                    tokenize=True, add_generation_prompt=True,
+                    enable_thinking=False)
             if hasattr(ids, "keys"):
                 ids = ids["input_ids"]
             if hasattr(ids, "tolist"):
