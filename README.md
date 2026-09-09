@@ -2,7 +2,7 @@
 
 # 🧪 ToolAPPS
 
-**ToolAPPS：面向编码智能体工具使用训练的确定性合成、执行可验证轨迹数据集**
+**ToolAPPS：面向编码智能体后训练的执行验证环境、轨迹数据与 SFT/RL 流水线**
 
 *A Deterministic, Execution-Verified Trajectory Dataset for Tool-Use Coding Agents*
 
@@ -10,15 +10,38 @@
 ![dataset](https://img.shields.io/badge/dataset-1%2C481%20episodes-4caf50)
 ![qa](https://img.shields.io/badge/QA-passed-brightgreen)
 ![offline](https://img.shields.io/badge/offline-100%25-9cf)
-![no-model](https://img.shields.io/badge/model-none-lightgrey)
-![no-api](https://img.shields.io/badge/API-none-lightgrey)
+![sft](https://img.shields.io/badge/SFT-14B%20light-blue)
+![rl](https://img.shields.io/badge/RL-next%20phase-orange)
 ![source](https://img.shields.io/badge/source-APPS%20train%20%7C%20pinned%20revision-ff9800)
 ![python](https://img.shields.io/badge/Python-3.10%2B-3776AB)
 ![tests](https://img.shields.io/badge/tests-33%20passed-success)
 
-> **TL;DR** —— 一条样本 = 「可观察状态 → 在真实执行验证下该调用的工具动作」。数据集完全离线生成：人工注入的可控错误 + 私有 grader 真实取证 + 确定性恢复正确解。不烧模型、不调 API、行为标签是规则设计而非经验反事实。
+> **TL;DR** —— ToolAPPS 将 APPS 题目、沙箱/grader 和执行验证轨迹组织成 coding-agent 后训练流水线：确定性数据合成 → protocol-light SFT → GRPO/RL。当前 SFT 已冻结，14B dynamic-LoRA checkpoint-2 是选定的 RL warm start；grader、工具契约和评测集保持冻结。
 
 </div>
+
+---
+
+## 当前项目入口
+
+仓库按功能分为四层：
+
+APPS
+  ↓
+src/synthesis/       数据合成 + agent environment（RL 前冻结）
+  ↓
+sft/                 protocol-light SFT（已冻结）
+  ↓
+rl/                  后续 GRPO/RL 实验（当前阶段）
+
+- 当前状态与冻结契约：PROJECT_STATUS.md
+- 数据合成说明：docs/DATA_SYNTHESIS_SPEC.md
+- Agent 环境与工具评测：docs/SFT_AGENT_EVALUATION.md
+- SFT 入口：sft/README.md
+- RL 入口：rl/README.md
+
+历史实验配置位于 sft/configs/archive/，诊断脚本位于
+sft/scripts/diagnostics/；不要将历史实验当作当前主线配置。
 
 ---
 

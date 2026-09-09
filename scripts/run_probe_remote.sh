@@ -5,6 +5,6 @@ PID_ARG="${1:-4004}"
 cd /home/zfs02/jiangjr/data_syn
 pkill -9 -f 'probe_one[.]py' 2>/dev/null || true
 rm -f sft/outputs/probe_one.log
-setsid nohup bash -c "cd /home/zfs02/jiangjr/data_syn && CUDA_VISIBLE_DEVICES=2 PYTHONPATH=src ./sft-venv/bin/python -u sft/scripts/probe_one.py ${PID_ARG} > sft/outputs/probe_one.log 2>&1" \
+setsid nohup bash -c "cd /home/zfs02/jiangjr/data_syn && CUDA_VISIBLE_DEVICES=2 PYTHONPATH=src ./sft-venv/bin/python -u sft/scripts/diagnostics/probe_one.py ${PID_ARG} > sft/outputs/probe_one.log 2>&1" \
   < /dev/null > /dev/null 2>&1 &
 echo "STARTED pid $!"

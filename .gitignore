@@ -29,3 +29,9 @@ data/coding_sft_protocol/
 data/sft_v5_final/
 data/tiny_protocol_t2/
 sft/outputs/protocol_run05_tiny2/
+sft/outputs
+sft/exports
+sft/logs
+experiments/sft/outputs/
+experiments/sft/exports/
+experiments/sft/logs/

@@ -1,5 +1,11 @@
 # ToolAPPS SFT 实施记录（uv + LLaMA-Factory + wandb）
 
+> 当前 SFT 阶段已冻结。主线配置是
+> sft/configs/active/qwen25_14b_light_all_linear.yaml，选定的 warm start 是
+> sft/outputs/protocol_run13_qwen25_14b_light_all_linear/checkpoint-2
+> （dynamic LoRA，不合并）。旧配置已归档到 sft/configs/archive/，诊断脚本已归档到
+> sft/scripts/diagnostics/。
+
 > 依据 `docs/LLAMA_FACTORY_SFT_IMPLEMENTATION_SPEC.md` 实施；本记录以
 > 2026-09-06 实际跑通的结果为准。文档中的“383 轨迹/659 目标”是旧数据口径，
 > 现以 `data/sft_final` 1481 条终版为准。
@@ -38,8 +44,8 @@ python3 sft/scripts/prepare_sft.py \
 
 ## 4. labels 审计（阶段 3，真实模板）
 ```bash
-./sft-venv/bin/python sft/scripts/audit_sft_labels.py \
-  --config sft/configs/sft_lora.yaml --dataset <coding_agent_train|dev|smoke|structure> \
+./sft-venv/bin/python sft/scripts/diagnostics/audit_sft_labels.py \
+  --config sft/configs/active/qwen25_14b_light_all_linear.yaml --dataset <coding_agent_train|dev|smoke|structure> \
   --report-dir sft/outputs/data_audit
 ```
 全部 **0 问题**：监督 span 连续且在序列末尾、每样本≥1 label、历史与工具观察全 -100、
@@ -56,19 +62,19 @@ python3 sft/scripts/prepare_sft.py \
 
 ## 5. Smoke 训练（阶段 4，A6000-6 GPU0）
 ```bash
-CUDA_VISIBLE_DEVICES=0 ./sft-venv/bin/llamafactory-cli train sft/configs/sft_smoke.yaml
+CUDA_VISIBLE_DEVICES=0 ./sft-venv/bin/llamafactory-cli train sft/configs/archive/7b_protocol/sft_smoke.yaml
 ```
 - 20 steps 完成，train_loss=**1.11**，grad_norm 0.2–2.8（adapter 正常更新），
   20.3s/20 steps；loss 曲线：`sft/outputs/smoke/training_loss.png`
 - 接线结论：ShareGPT 前缀样本 + `mask_history:true` + `tool_format:qwen` 可正常训练。
-- 正式配置：`sft/configs/sft_lora.yaml`（LoRA r32，`mask_history`，bf16，3 epochs，
+- 历史正式配置：`sft/configs/archive/7b_protocol/sft_lora.yaml`（LoRA r32，`mask_history`，bf16，3 epochs，
   `report_to: wandb`，单卡有效 batch=16）。
 
 ## 6. 下一步（待办）
 1. **wandb**：提供 `WANDB_API_KEY` + project/entity 后，正式训练时用 `sft_lora.yaml`（`report_to: wandb`）。
-2. 正式训练：`CUDA_VISIBLE_DEVICES=<空闲卡> ./sft-venv/bin/llamafactory-cli train sft/configs/sft_lora.yaml`
+2. 当前主线训练配置：sft/configs/active/qwen25_14b_light_all_linear.yaml（14B protocol-light；该 run 已完成）
 3. dev 执行评测：`sft/scripts/evaluate_sft_agent.py`（复用两工具环境；或直接用根 `scripts/eval.sh` 对比基座/训练后模型）。
-4. 合并导出：`sft/configs/export_sft.yaml`（llamafactory-cli export）→ 交付 veRL（附题目排除清单：`split_manifest.json` 的 train/dev keys 并集）。
+4. 不要在当前主线合并 LoRA；后续 RL 使用 Base + selected dynamic LoRA。
 
 ## 7. 工具评测修复（tool-agent-v2）
 
